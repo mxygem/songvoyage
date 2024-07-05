@@ -50,6 +50,16 @@ type songer interface {
 	remove(ctx context.Context, setlistName, songName string, songNumber int) error
 }
 
+type dber interface {
+	finder
+	creator
+	deleter
+	clearer
+	saver
+	updater
+	songer
+}
+
 // db represents the accesor to the server's database and implements the core interfaces
 // above.
 type db struct {

@@ -1,8 +1,12 @@
 package main
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
+	"time"
 
 	"github.com/fasthttp/router"
 	"github.com/valyala/fasthttp"
@@ -38,7 +42,36 @@ func routes(s *server) *router.Router {
 // setlist will be returned if found. If no name is provided, it will return the current
 // temporary setlist if it contains any songs. If neither is true, it will return a
 // message indicating such.
-func (s *server) getSetlist(rctx *fasthttp.RequestCtx) {}
+func (s *server) getSetlist(rctx *fasthttp.RequestCtx) {
+	action := "get setlist"
+	name := rctx.QueryArgs().Peek("name")
+
+	ctx, cancel := context.WithTimeout(rctx, 5*time.Second)
+	defer cancel()
+
+	// TODO: Return non-error response when setlist is not found
+	sl, err := setlist(ctx, s.db, name)
+	if err != nil {
+		log.Printf("%s - getting setlist: %s", action, err)
+		// TODO: Create error types for automatic formatting
+		rctx.Error(`{"error":"failed to get setlist"}`, http.StatusInternalServerError)
+		return
+	}
+
+	b, err := json.Marshal(sl)
+	if err != nil {
+		log.Printf("%s - marshalling setlist data: %s", action, err)
+		rctx.Error(fmt.Sprintf("preparing response data: %s", err), http.StatusInternalServerError)
+		return
+	}
+
+	// TODO: Determine a good way of formatting data for output to chat.
+	if _, err := rctx.Write(b); err != nil {
+		log.Printf("%s - writing response: %s", action, err)
+		rctx.Error(fmt.Sprintf("preparing response data: %s", err), http.StatusInternalServerError)
+		return
+	}
+}
 
 // createSetlist handles requests to create a persisted setlist. A name must be provided
 // otherwise the request will be handled as a no-op.

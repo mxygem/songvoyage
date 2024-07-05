@@ -15,7 +15,7 @@ import (
 )
 
 type server struct {
-	db *db
+	db dber
 }
 
 func newServer() *server {
