@@ -8,57 +8,69 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-func routes() *router.Router {
+func routes(s *server) *router.Router {
 	r := router.New()
 
 	r.GET("/healthcheck", healthcheck)
 	r.GET("/request-echo", requestHandler)
 
-	// v1 := r.Group("/v1")
-	// setlist
-	// slV1 := v1.Group("/setlist")
-	// slV1.GET("")
+	v1 := r.Group("/v1")
+
+	slV1 := v1.Group("/setlist")
+	// due to initial unknown implementation direction and request capabilities of
+	// existing chat bots, all routes will be accessed via GETs with all data added as
+	// query parameters.
+	slV1.GET("/", s.getSetlist)
+	slV1.GET("/create", s.createSetlist)
+	slV1.GET("/clear", s.clearSetlist)
+	slV1.GET("/save", s.saveSetlist)
+	slV1.GET("/delete", s.deleteSetlist)
+
+	upV1 := slV1.Group("/update")
+	upV1.GET("/", s.updateSetlist)
+	upV1.GET("/add_song", s.addSong)
+	upV1.GET("/remove_song", s.removeSong)
 
 	return r
 }
-
-// createSetlist handles requests to create a persisted setlist. A name must be provided
-// otherwise the request will be handled as a no-op.
-func createSetlist(ctx *fasthttp.RequestCtx) {}
 
 // getSetlist handles requests to retrieve a setlist. If a name is provided, a persisted
 // setlist will be returned if found. If no name is provided, it will return the current
 // temporary setlist if it contains any songs. If neither is true, it will return a
 // message indicating such.
-func getSetlist(ctx *fasthttp.RequestCtx) {}
+func (s *server) getSetlist(rctx *fasthttp.RequestCtx) {}
+
+// createSetlist handles requests to create a persisted setlist. A name must be provided
+// otherwise the request will be handled as a no-op.
+func (s *server) createSetlist(ctx *fasthttp.RequestCtx) {}
+
+// deleteSetlist handles requests to remove a setlist. The name provided must be an exact
+// match in order for the delete to be processed successfully.
+func (s *server) deleteSetlist(ctx *fasthttp.RequestCtx) {}
+
+// clearSetlist handles requests to clear all songs from a particular setlist. If no name
+// is provided, then the current temporary setlist will be cleared.
+func (s *server) clearSetlist(ctx *fasthttp.RequestCtx) {}
+
+// saveSetlist handles requests to save the current temporary setlist as a persisted
+// setlist with the provided name. A name is required for this request to be processed
+// successfully.
+func (s *server) saveSetlist(ctx *fasthttp.RequestCtx) {}
 
 // updateSetlist handles requests to update a setlist. Currently, the only field that can
 // be updated is a setlist's name. This should help in situations where a setlist was
 // created with an incorrect name or the requester simply wants to change it. Both the
 // existing and desired names must be provided.
-func updateSetlist(ctx *fasthttp.RequestCtx) {}
-
-// deleteSetlist handles requests to remove a setlist. The name provided must be an exact
-// match in order for the delete to be processed successfully.
-func deleteSetlist(ctx *fasthttp.RequestCtx) {}
-
-// clearSetlist handles requests to clear all songs from a particular setlist. If no name
-// is provided, then the current temporary setlist will be cleared.
-func clearSetlist(ctx *fasthttp.RequestCtx) {}
-
-// saveSetlist handles requests to save the current temporary setlist as a persisted
-// setlist with the provided name. A name is required for this request to be processed
-// successfully.
-func saveSetlist(ctx *fasthttp.RequestCtx) {}
+func (s *server) updateSetlist(ctx *fasthttp.RequestCtx) {}
 
 // addSong handles requests to append a song to a setlist. If no setlist name is provided
 // the song will be added to the temporary setlist.
-func addSong(ctx *fasthttp.RequestCtx) {}
+func (s *server) addSong(ctx *fasthttp.RequestCtx) {}
 
 // removeSong handles requests to remove a song from a setlist. If no setlist name is
 // provided the song will be removed from the temporary setlist if it exists on the
 // setlist.
-func removeSong(ctx *fasthttp.RequestCtx) {}
+func (s *server) removeSong(ctx *fasthttp.RequestCtx) {}
 
 // findSong handles requests to look up a song. It looks up a particular song in a user's
 // stored song list and if not found, searches chorus to see if its chart is available to
@@ -68,6 +80,14 @@ func removeSong(ctx *fasthttp.RequestCtx) {}
 //   - Whether or not a feature allowing users to upload their list of songs is
 //     implemented.
 // func findSong(ctx *fasthttp.RequestCtx) {}
+
+// findSongs handles requests to look up potenally multiple songs. It returns a list of
+// matched songs by partial name or artist name. Other parameters TBD. Also TBD is
+// pagination support in case there are more results provided than can be reasonably
+// returned.
+// It is also currently not in use and also depends on the above factors in the comment
+// for findSong
+// func findSongs(ctx *fasthttp.RequestCtx) {}
 
 // healthcheck handles requests to inquire whether the service is running or not. It
 // currently returns no data, only an HTTP status code of 200 if successful.

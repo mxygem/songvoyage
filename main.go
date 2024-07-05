@@ -14,22 +14,30 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-var (
-	addr = flag.String("addr", ":8080", "TCP address to listen to")
-)
+type server struct {
+	db *db
+}
+
+func newServer() *server {
+	return &server{
+		db: newDB(),
+	}
+}
 
 func main() {
+	addr := flag.String("addr", ":8080", "TCP address to listen to")
 	flag.Parse()
 
-	r := routes()
+	s := newServer()
+	r := routes(s)
 
-	s := &fasthttp.Server{
+	fs := &fasthttp.Server{
 		Handler: r.Handler,
 	}
 
 	go func() {
 		log.Printf("starting server at %q", *addr)
-		if err := s.ListenAndServe(*addr); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		if err := fs.ListenAndServe(*addr); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("listen and serve: %s", err)
 		}
 	}()
@@ -42,7 +50,7 @@ func main() {
 	defer cancel()
 
 	log.Println("shutting down server")
-	if err := s.ShutdownWithContext(ctx); err != nil {
+	if err := fs.ShutdownWithContext(ctx); err != nil {
 		log.Fatalf("shutting down server: %s", err)
 	}
 }
