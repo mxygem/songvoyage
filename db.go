@@ -50,6 +50,11 @@ type songer interface {
 	remove(ctx context.Context, setlistName, songName string, songNumber int) error
 }
 
+type finderCreator interface {
+	finder
+	creator
+}
+
 type dber interface {
 	finder
 	creator

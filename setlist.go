@@ -2,9 +2,14 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
+)
+
+const (
+	tempSetlistName = "temp"
 )
 
 // Setlist represents data about a setlist including how long it should remain available.
@@ -15,7 +20,7 @@ type Setlist struct {
 	ID     primitive.ObjectID `json:"-"`
 	Name   string             `json:"name"`
 	Expiry time.Time          `json:"-"`
-	Songs  []*Song            `json:"songs"`
+	Songs  []*Song            `json:"songs,omitempty"`
 }
 
 // Song represents data about a particular song
@@ -24,8 +29,33 @@ type Song struct {
 	Name   string `json:"name"`
 }
 
-func setlist(ctx context.Context, db finder, name []byte) (*Setlist, error) {
-	return db.find(ctx, string(name))
+// TODO: update to include collection
+func setlist(ctx context.Context, db finderCreator, name []byte) (*Setlist, error) {
+	slName := string(name)
+	// if no name is provided, try looking up the temporary setlist
+	if slName == "" {
+		slName = tempSetlistName
+	}
+
+	sl, err := db.find(ctx, slName)
+	if err != nil {
+		return nil, fmt.Errorf("looking up setlist: %w", err)
+	}
+	// if found, return the setlist
+	if sl != nil {
+		return sl, err
+	}
+
+	// if the setlist wasn't found and we're looking for the temp setlist, create it.
+	// TODO: create & send expiry
+	if slName == tempSetlistName {
+		sl, err = db.create(ctx, slName)
+		if err != nil {
+			return nil, fmt.Errorf("creating temp setlist: %w", err)
+		}
+	}
+
+	return sl, nil
 }
 
 func delete(ctx context.Context, db deleter, name []byte) error {
